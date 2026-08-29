@@ -10,12 +10,16 @@ import { FlowStateComponent, flowCompute, flowWatch } from 'flow-state';
  *   max-size         Maximum first-panel size in % (default 90)
  *   resizable        Set to "false" to disable drag-to-resize (default enabled)
  *   divider-width    Divider thickness in px (default 8)
- *   zoom-on-hover    Set to "true" to enable the hover-to-grow effect (default disabled)
- *   zoom-amount      Percentage points a hovered panel grows by (default 15)
+ *   grow-amount      Percentage points a hovered panel grows by (default 15)
  *
  * Slots:
  *   first            Content for the first (left / top) panel
  *   second           Content for the second (right / bottom) panel
+ *
+ *   Add a `grow-on-hover` attribute directly on the element assigned to a
+ *   slot (not on <fractal-view> itself) to opt just that panel into the
+ *   hover-to-grow effect — it's a bare marker attribute (presence enables
+ *   it), checked live, so each panel's hover response is independent.
  *
  * Methods:
  *   resize(size)     Programmatically set the first-panel size (%)
@@ -34,10 +38,12 @@ export class Fractal extends FlowStateComponent {
   #onMouseMoveBound = (e) => this.#onMouseMove(e);
   #onMouseUpBound = () => this.#onMouseUp();
 
-  // ── Hover-zoom state ──────────────────────────────────────────────────────
+  // ── Hover-grow state ──────────────────────────────────────────────────────
   #firstPanelEl = null;
-  #zoomOnHover = false;
-  #zoomAmount = 15;
+  #dividerEl = null;
+  #firstSlotEl = null;
+  #secondSlotEl = null;
+  #growAmount = 15;
 
   // ── Styles ────────────────────────────────────────────────────────────────
   get styles() {
@@ -86,9 +92,9 @@ export class Fractal extends FlowStateComponent {
         background: #6b7280;
       }
 
-      /* Only applied while a hover-triggered zoom is in play — kept off
+      /* Only applied while a hover-triggered grow is in play — kept off
          during drags so resizing tracks the cursor with no lag. */
-      .first-panel.zoom-transition {
+      .first-panel.grow-transition {
         transition: flex-basis 0.18s ease, width 0.18s ease, height 0.18s ease;
       }
     `;
@@ -117,8 +123,7 @@ export class Fractal extends FlowStateComponent {
     const dividerwidth = parseInt(this.getAttribute('divider-width') ?? '8', 10);
     const minsize = parseFloat(this.getAttribute('min-size') ?? '10');
     const maxsize = parseFloat(this.getAttribute('max-size') ?? '90');
-    this.#zoomOnHover = this.getAttribute('zoom-on-hover') === 'true';
-    this.#zoomAmount = parseFloat(this.getAttribute('zoom-amount') ?? '15');
+    this.#growAmount = parseFloat(this.getAttribute('grow-amount') ?? '15');
 
     // Set the source own-property before super reads it.
     // Object.defineProperty is required because FlowStateComponent defines a
@@ -151,7 +156,7 @@ export class Fractal extends FlowStateComponent {
         // First panel: fixed size via flex-basis, sized against the space
         // left over after the divider's fixed thickness so it can never push
         // the divider past the container's edge (e.g. at size=100). Hover
-        // zoom is layered on as a clamped offset to the true `size`.
+        // grow is layered on as a clamped offset to the true `size`.
         firststyle: flowCompute(
           (size, split, dividerwidth, hoverboost) => {
             const effectiveSize = Math.max(minsize, Math.min(maxsize, size + hoverboost));
@@ -196,17 +201,18 @@ export class Fractal extends FlowStateComponent {
     });
 
     // Wire up drag-resize on the now-stamped divider.
-    this.shadowRoot
-      ?.querySelector('.divider')
-      ?.addEventListener('mousedown', (e) => this.#onDividerMouseDown(e));
+    this.#dividerEl = this.shadowRoot?.querySelector('.divider') ?? null;
+    this.#dividerEl?.addEventListener('mousedown', (e) => this.#onDividerMouseDown(e));
 
-    // Wire up hover-to-zoom on both panels.
+    // Wire up hover-to-grow on both panels.
     this.#firstPanelEl = this.shadowRoot?.querySelector('.first-panel') ?? null;
     const secondPanelEl = this.shadowRoot?.querySelector('.second-panel');
+    this.#firstSlotEl = this.shadowRoot?.querySelector('slot[name="first"]') ?? null;
+    this.#secondSlotEl = this.shadowRoot?.querySelector('slot[name="second"]') ?? null;
     this.#firstPanelEl?.addEventListener('mouseenter', () => this.#onPanelHover('first'));
-    this.#firstPanelEl?.addEventListener('mouseleave', () => this.#onPanelHover(null));
+    this.#firstPanelEl?.addEventListener('mouseleave', (e) => this.#onPanelLeave(e));
     secondPanelEl?.addEventListener('mouseenter', () => this.#onPanelHover('second'));
-    secondPanelEl?.addEventListener('mouseleave', () => this.#onPanelHover(null));
+    secondPanelEl?.addEventListener('mouseleave', (e) => this.#onPanelLeave(e));
   }
 
   disconnectedCallback() {
@@ -250,21 +256,41 @@ export class Fractal extends FlowStateComponent {
 
     e.preventDefault();
     this.#dragging = true;
-    // Cancel any hover zoom in progress so dragging starts from the true
+    // Cancel any hover grow in progress so dragging starts from the true
     // size, with no leftover transition to make it lag behind the cursor.
-    this.#firstPanelEl?.classList.remove('zoom-transition');
+    this.#firstPanelEl?.classList.remove('grow-transition');
     this.source.update({ hoverboost: 0 });
     window.addEventListener('mousemove', this.#onMouseMoveBound);
     window.addEventListener('mouseup', this.#onMouseUpBound);
   }
 
-  // ── Hover-zoom handler ────────────────────────────────────────────────────
+  // ── Hover-grow handler ────────────────────────────────────────────────────
   #onPanelHover(which) {
-    if (!this.source?.update || this.#dragging || !this.#zoomOnHover) return;
+    if (!this.source?.update || this.#dragging) return;
 
-    this.#firstPanelEl?.classList.add('zoom-transition');
-    const hoverboost = which === 'first' ? this.#zoomAmount : which === 'second' ? -this.#zoomAmount : 0;
+    // Entering a panel only grows it if the element actually assigned to
+    // that slot opts in via its own `grow-on-hover` attribute — checked live
+    // against the current assignment, so each panel's hover response is
+    // independent and unaffected by <fractal-view>'s own attributes.
+    if (which !== null) {
+      const slotEl = which === 'first' ? this.#firstSlotEl : this.#secondSlotEl;
+      const enabled = slotEl?.assignedElements().some((el) => el.hasAttribute('grow-on-hover'));
+      if (!enabled) return;
+    }
+
+    this.#firstPanelEl?.classList.add('grow-transition');
+    const hoverboost = which === 'first' ? this.#growAmount : which === 'second' ? -this.#growAmount : 0;
     this.source.update({ hoverboost });
+  }
+
+  // Moving from a panel onto the divider isn't a real "leave" for hover-grow
+  // purposes — the divider's position tracks the panel's live size, so
+  // shrinking back mid-crossing would drag it out from under the cursor
+  // right as the user tries to grab it. Keep whichever panel is grown grown
+  // until the cursor lands in the other panel or leaves the component.
+  #onPanelLeave(e) {
+    if (e.relatedTarget === this.#dividerEl) return;
+    this.#onPanelHover(null);
   }
 
   #onMouseMove(e) {

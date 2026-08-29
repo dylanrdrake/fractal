@@ -4,7 +4,7 @@ A custom web component for resizable two-panel layouts — `<fractal-view>` rend
 
 - 🪟 Two-panel layout, vertical (left | right) or horizontal (top | bottom)
 - 🖱️ Drag-to-resize divider, with min/max clamping
-- 🔍 Hover-to-zoom — the panel under the cursor grows for a closer look, and settles back on mouse-out
+- 🔍 Hover-to-grow — opt any panel in with `grow-on-hover`; it grows on mouseover and settles back on mouse-out
 - 🪆 Nestable — a `<fractal-view>` can live inside another's slot for arbitrary layouts
 - 🎛️ Fully controllable via attributes or the `resize()` method, and observable via a standard `sizechange` event
 
@@ -79,10 +79,9 @@ Panels can be nested by placing a `<fractal-view>` inside a slot of another:
 | `max-size`        | number (%)          | `90`    | Maximum size the first panel can be dragged to.             |
 | `resizable`       | `"false"` to disable | enabled | Set to `"false"` to lock the divider. Reactive.            |
 | `divider-width`   | number (px)          | `8`     | Thickness of the divider. Read once on connect.             |
-| `zoom-on-hover`   | `"true"` to enable   | disabled | Set to `"true"` to enable the hover-to-grow effect. Read once on connect. |
-| `zoom-amount`     | number (percentage points) | `15` | How much the hovered panel grows by. Read once on connect. |
+| `grow-amount`     | number (percentage points) | `15` | How much a panel grows on hover (see `grow-on-hover` below). Read once on connect. |
 
-Only `split` and `resizable` are observed/reactive after the element connects; the rest — including `zoom-on-hover`/`zoom-amount` — are init-time config, read once on connect.
+Only `split` and `resizable` are observed/reactive after the element connects; the rest — including `grow-amount` — are init-time config, read once on connect.
 
 ## Slots
 
@@ -90,6 +89,19 @@ Only `split` and `resizable` are observed/reactive after the element connects; t
 | ---------- | --------------------------------- |
 | `first`    | Left panel (or top, when `split="h"`)  |
 | `second`   | Right panel (or bottom, when `split="h"`) |
+
+### `grow-on-hover`
+
+The hover-to-grow effect isn't a `<fractal-view>` attribute — it's opted into per panel by adding a bare `grow-on-hover` attribute to the *element assigned to that slot*. Presence enables it (any value, or none); it's checked live, so each panel's hover response is independent of its sibling and of `<fractal-view>`'s own attributes.
+
+```html
+<fractal-view split="v">
+  <div slot="first" grow-on-hover>Grows when hovered</div>
+  <div slot="second">Never grows</div>
+</fractal-view>
+```
+
+`grow-amount` (see Attributes above) still controls how much any opted-in panel grows by.
 
 ## Methods
 
@@ -107,7 +119,7 @@ document.querySelector('fractal-view').resize(60);
 
 Fired on the `<fractal-view>` element whenever the first panel's size changes — whether from `resize()`, dragging the divider, or an attribute change. `detail.size` is the new percentage. The event bubbles and is composed, so it can be listened for from outside the element's shadow DOM.
 
-Hovering a panel (see `zoom-on-hover` above) does *not* fire `sizechange` — the zoom is a purely visual, temporary offset layered on top of the real size, not a change to it.
+Hovering a panel with `grow-on-hover` (see Slots above) does *not* fire `sizechange` — the grow is a purely visual, temporary offset layered on top of the real size, not a change to it.
 
 ```js
 panel.addEventListener('sizechange', (e) => {

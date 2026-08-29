@@ -37,19 +37,14 @@
       flex-shrink: 0;
     }
 
-    .demo-row {
-      display: flex;
-      flex: 1;
-      gap: 0;
-      min-height: 0;
-    }
-
     .demo-cell {
-      flex: 1;
       display: flex;
       flex-direction: column;
+      height: 100%;
+      width: 100%;
       min-height: 0;
       min-width: 0;
+      box-sizing: border-box;
     }
 
     .demo-label {
@@ -62,10 +57,6 @@
       background: #f0f0f1;
       border-bottom: 1px solid #e5e5e6;
       flex-shrink: 0;
-    }
-
-    .demo-cell + .demo-cell {
-      border-left: 1px solid #e5e5e6;
     }
 
     fractal-view {
@@ -139,13 +130,15 @@
 
 <h1>🪟 Fractal — Resizable Panels</h1>
 
-<div class="demo-row">
+<!-- The demo's own top-level layout is 2 nested vertical fractal-views,
+     making 3 resizable panels out of the 3 showcase cells below. -->
+<fractal-view split="v" initial-size="33.34" min-size="15" max-size="85">
 
-  <!-- Vertical split (left | right) -->
-  <div class="demo-cell">
-    <div class="demo-label">Vertical split (left | right) · hover to zoom</div>
-    <fractal-view id="v-panel" split="v" initial-size="35" min-size="0" max-size="100" divider-width="8" zoom-on-hover="true">
-      <div slot="first"  class="pane pane-a">First panel</div>
+  <!-- Panel 1: Vertical split (left | right) -->
+  <div slot="first" class="demo-cell">
+    <div class="demo-label">Vertical split (left | right) · hover to grow</div>
+    <fractal-view id="v-panel" split="v" initial-size="35" min-size="0" max-size="100" divider-width="8">
+      <div slot="first"  class="pane pane-a" grow-on-hover>First panel</div>
       <div slot="second" class="pane pane-b">Second panel</div>
     </fractal-view>
     <div class="controls">
@@ -158,42 +151,46 @@
     </div>
   </div>
 
-  <!-- Horizontal split (top | bottom) -->
-  <div class="demo-cell">
-    <div class="demo-label">Horizontal split (top | bottom)</div>
-    <fractal-view id="h-panel" split="h" initial-size="40" min-size="0" max-size="100" divider-width="6">
-      <div slot="first"  class="pane pane-c">First panel</div>
-      <div slot="second" class="pane pane-d">Second panel</div>
-    </fractal-view>
-    <div class="controls">
-      <label>
-        Resize:
-        <input type="range" min="0" max="100" value="40" id="h-slider" />
-      </label>
-    </div>
-  </div>
+  <fractal-view slot="second" split="v" initial-size="50" min-size="15" max-size="85">
 
-  <!-- Nested: vertical outer, horizontal inner first panel -->
-  <div class="demo-cell">
-    <div class="demo-label">Nested panels</div>
-    <fractal-view split="v" initial-size="40" min-size="0" max-size="100" divider-width="6">
-      <fractal-view slot="first" split="h" initial-size="50" min-size="0" max-size="100" divider-width="6">
-        <div slot="first"  class="pane pane-e">Top</div>
-        <div slot="second" class="pane pane-f">Bottom</div>
+    <!-- Panel 2: Horizontal split (top | bottom) -->
+    <div slot="first" class="demo-cell">
+      <div class="demo-label">Horizontal split (top | bottom)</div>
+      <fractal-view id="h-panel" split="h" initial-size="40" min-size="0" max-size="100" divider-width="6">
+        <div slot="first"  class="pane pane-c">First panel</div>
+        <div slot="second" class="pane pane-d">Second panel</div>
       </fractal-view>
-      <div slot="second" class="pane pane-a">
-        <fractal-view split="h" initial-size="50" min-size="0" max-size="100" divider-width="6">
-          <div slot="first"  class="pane pane-b">Top</div>
-          <div slot="second" class="pane pane-c">Bottom</div>
-        </fractal-view>
+      <div class="controls">
+        <label>
+          Resize:
+          <input type="range" min="0" max="100" value="40" id="h-slider" />
+        </label>
       </div>
-    </fractal-view>
-    <div class="controls">
-      <span style="font-size:0.75rem;color:#696c77;">Drag any divider to resize</span>
     </div>
-  </div>
 
-</div>
+    <!-- Panel 3: Nested: vertical outer, horizontal inner first panel -->
+    <div slot="second" class="demo-cell">
+      <div class="demo-label">Nested panels</div>
+      <fractal-view split="v" initial-size="40" min-size="0" max-size="100" divider-width="6">
+        <fractal-view slot="first" split="h" initial-size="50" min-size="0" max-size="100" divider-width="6">
+          <div slot="first"  class="pane pane-e">Top</div>
+          <div slot="second" class="pane pane-f">Bottom</div>
+        </fractal-view>
+        <div slot="second" class="pane pane-a">
+          <fractal-view split="h" initial-size="50" min-size="0" max-size="100" divider-width="6">
+            <div slot="first"  class="pane pane-b">Top</div>
+            <div slot="second" class="pane pane-c" grow-on-hover>Bottom</div>
+          </fractal-view>
+        </div>
+      </fractal-view>
+      <div class="controls">
+        <span style="font-size:0.75rem;color:#696c77;">Drag any divider to resize</span>
+      </div>
+    </div>
+
+  </fractal-view>
+
+</fractal-view>
 
 <script type="module">
   import 'fractal';
