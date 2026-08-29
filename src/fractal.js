@@ -1,7 +1,7 @@
 import { FlowStateComponent, flowCompute, flowWatch } from 'flow-state';
 
 /**
- * <fractal-view> — a resizable two-panel split layout web component.
+ * <fractal-view> — a resizable two-panel layout web component.
  *
  * Attributes:
  *   split            "v" (left|right, default) | "h" (top|bottom)
@@ -10,6 +10,8 @@ import { FlowStateComponent, flowCompute, flowWatch } from 'flow-state';
  *   max-size         Maximum first-panel size in % (default 90)
  *   resizable        Set to "false" to disable drag-to-resize (default enabled)
  *   divider-width    Divider thickness in px (default 8)
+ *   zoom-on-hover    Set to "true" to enable the hover-to-grow effect (default disabled)
+ *   zoom-amount      Percentage points a hovered panel grows by (default 15)
  *
  * Slots:
  *   first            Content for the first (left / top) panel
@@ -31,6 +33,11 @@ export class Fractal extends FlowStateComponent {
   // Bound handler references kept for clean removal.
   #onMouseMoveBound = (e) => this.#onMouseMove(e);
   #onMouseUpBound = () => this.#onMouseUp();
+
+  // ── Hover-zoom state ──────────────────────────────────────────────────────
+  #firstPanelEl = null;
+  #zoomOnHover = false;
+  #zoomAmount = 15;
 
   // ── Styles ────────────────────────────────────────────────────────────────
   get styles() {
@@ -78,6 +85,12 @@ export class Fractal extends FlowStateComponent {
       .divider:active {
         background: #6b7280;
       }
+
+      /* Only applied while a hover-triggered zoom is in play — kept off
+         during drags so resizing tracks the cursor with no lag. */
+      .first-panel.zoom-transition {
+        transition: flex-basis 0.18s ease, width 0.18s ease, height 0.18s ease;
+      }
     `;
   }
 
@@ -104,6 +117,8 @@ export class Fractal extends FlowStateComponent {
     const dividerwidth = parseInt(this.getAttribute('divider-width') ?? '8', 10);
     const minsize = parseFloat(this.getAttribute('min-size') ?? '10');
     const maxsize = parseFloat(this.getAttribute('max-size') ?? '90');
+    this.#zoomOnHover = this.getAttribute('zoom-on-hover') === 'true';
+    this.#zoomAmount = parseFloat(this.getAttribute('zoom-amount') ?? '15');
 
     // Set the source own-property before super reads it.
     // Object.defineProperty is required because FlowStateComponent defines a
@@ -119,6 +134,10 @@ export class Fractal extends FlowStateComponent {
         dividerwidth,
         minsize,
         maxsize,
+        // Ephemeral, hover-driven boost added on top of `size` — never
+        // persisted and never affects `size` itself, so it can't leak into
+        // `resize()`, drags, or the `sizechange` event.
+        hoverboost: 0,
 
         // flex-direction on the container
         containerstyle: flowCompute(
@@ -131,15 +150,17 @@ export class Fractal extends FlowStateComponent {
 
         // First panel: fixed size via flex-basis, sized against the space
         // left over after the divider's fixed thickness so it can never push
-        // the divider past the container's edge (e.g. at size=100).
+        // the divider past the container's edge (e.g. at size=100). Hover
+        // zoom is layered on as a clamped offset to the true `size`.
         firststyle: flowCompute(
-          (size, split, dividerwidth) => {
-            const basis = `calc((100% - ${dividerwidth}px) * ${size} / 100)`;
+          (size, split, dividerwidth, hoverboost) => {
+            const effectiveSize = Math.max(minsize, Math.min(maxsize, size + hoverboost));
+            const basis = `calc((100% - ${dividerwidth}px) * ${effectiveSize} / 100)`;
             return split === 'v'
               ? `flex: 0 0 ${basis}; width: ${basis};`
               : `flex: 0 0 ${basis}; height: ${basis};`;
           },
-          ['size', 'split', 'dividerwidth']
+          ['size', 'split', 'dividerwidth', 'hoverboost']
         ),
 
         // Divider: fixed thickness + cursor based on split and resizability
@@ -178,6 +199,14 @@ export class Fractal extends FlowStateComponent {
     this.shadowRoot
       ?.querySelector('.divider')
       ?.addEventListener('mousedown', (e) => this.#onDividerMouseDown(e));
+
+    // Wire up hover-to-zoom on both panels.
+    this.#firstPanelEl = this.shadowRoot?.querySelector('.first-panel') ?? null;
+    const secondPanelEl = this.shadowRoot?.querySelector('.second-panel');
+    this.#firstPanelEl?.addEventListener('mouseenter', () => this.#onPanelHover('first'));
+    this.#firstPanelEl?.addEventListener('mouseleave', () => this.#onPanelHover(null));
+    secondPanelEl?.addEventListener('mouseenter', () => this.#onPanelHover('second'));
+    secondPanelEl?.addEventListener('mouseleave', () => this.#onPanelHover(null));
   }
 
   disconnectedCallback() {
@@ -221,8 +250,21 @@ export class Fractal extends FlowStateComponent {
 
     e.preventDefault();
     this.#dragging = true;
+    // Cancel any hover zoom in progress so dragging starts from the true
+    // size, with no leftover transition to make it lag behind the cursor.
+    this.#firstPanelEl?.classList.remove('zoom-transition');
+    this.source.update({ hoverboost: 0 });
     window.addEventListener('mousemove', this.#onMouseMoveBound);
     window.addEventListener('mouseup', this.#onMouseUpBound);
+  }
+
+  // ── Hover-zoom handler ────────────────────────────────────────────────────
+  #onPanelHover(which) {
+    if (!this.source?.update || this.#dragging || !this.#zoomOnHover) return;
+
+    this.#firstPanelEl?.classList.add('zoom-transition');
+    const hoverboost = which === 'first' ? this.#zoomAmount : which === 'second' ? -this.#zoomAmount : 0;
+    this.source.update({ hoverboost });
   }
 
   #onMouseMove(e) {

@@ -7,7 +7,7 @@
   <script type="importmap">
   {
     "imports": {
-      "fractal": "../dist/fractal.js"
+      "fractal": "../src/index.js"
     }
   }
   </script>
@@ -137,14 +137,14 @@
 </head>
 <body>
 
-<h1>🪟 Fractal — Split Panel</h1>
+<h1>🪟 Fractal — Resizable Panels</h1>
 
 <div class="demo-row">
 
   <!-- Vertical split (left | right) -->
   <div class="demo-cell">
-    <div class="demo-label">Vertical split (left | right)</div>
-    <fractal-view id="v-panel" split="v" initial-size="35" min-size="0" max-size="100" divider-width="8">
+    <div class="demo-label">Vertical split (left | right) · hover to zoom</div>
+    <fractal-view id="v-panel" split="v" initial-size="35" min-size="0" max-size="100" divider-width="8" zoom-on-hover="true">
       <div slot="first"  class="pane pane-a">First panel</div>
       <div slot="second" class="pane pane-b">Second panel</div>
     </fractal-view>
@@ -181,7 +181,12 @@
         <div slot="first"  class="pane pane-e">Top</div>
         <div slot="second" class="pane pane-f">Bottom</div>
       </fractal-view>
-      <div slot="second" class="pane pane-a">Right panel</div>
+      <div slot="second" class="pane pane-a">
+        <fractal-view split="h" initial-size="50" min-size="0" max-size="100" divider-width="6">
+          <div slot="first"  class="pane pane-b">Top</div>
+          <div slot="second" class="pane pane-c">Bottom</div>
+        </fractal-view>
+      </div>
     </fractal-view>
     <div class="controls">
       <span style="font-size:0.75rem;color:#696c77;">Drag any divider to resize</span>

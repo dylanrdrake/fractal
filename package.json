@@ -1,7 +1,7 @@
 {
   "name": "fractal",
   "version": "0.1.0",
-  "description": "A custom web component for resizable split-panel layouts powered by flow-state.",
+  "description": "A custom web component for resizable two-panel layouts powered by flow-state.",
   "type": "module",
   "main": "./dist/fractal.umd.cjs",
   "module": "./dist/fractal.js",

@@ -1,9 +1,10 @@
 # Fractal
 
-A custom web component for resizable split-panel layouts — `<fractal-view>` renders two panels separated by a draggable divider, powered internally by [flow-state](https://github.com/dylanrdrake/flow-state) for reactive, attribute-driven styling. `flow-state` is bundled into the build, so there's nothing else to install.
+A custom web component for resizable two-panel layouts — `<fractal-view>` renders two panels separated by a draggable divider, powered internally by [flow-state](https://github.com/dylanrdrake/flow-state) for reactive, attribute-driven styling. `flow-state` is bundled into the build, so there's nothing else to install.
 
-- 🪟 Two-panel split layout, vertical (left | right) or horizontal (top | bottom)
+- 🪟 Two-panel layout, vertical (left | right) or horizontal (top | bottom)
 - 🖱️ Drag-to-resize divider, with min/max clamping
+- 🔍 Hover-to-zoom — the panel under the cursor grows for a closer look, and settles back on mouse-out
 - 🪆 Nestable — a `<fractal-view>` can live inside another's slot for arbitrary layouts
 - 🎛️ Fully controllable via attributes or the `resize()` method, and observable via a standard `sizechange` event
 
@@ -78,8 +79,10 @@ Panels can be nested by placing a `<fractal-view>` inside a slot of another:
 | `max-size`        | number (%)          | `90`    | Maximum size the first panel can be dragged to.             |
 | `resizable`       | `"false"` to disable | enabled | Set to `"false"` to lock the divider. Reactive.            |
 | `divider-width`   | number (px)          | `8`     | Thickness of the divider. Read once on connect.             |
+| `zoom-on-hover`   | `"true"` to enable   | disabled | Set to `"true"` to enable the hover-to-grow effect. Read once on connect. |
+| `zoom-amount`     | number (percentage points) | `15` | How much the hovered panel grows by. Read once on connect. |
 
-Only `split` and `resizable` are observed/reactive after the element connects; the others are read at connect time.
+Only `split` and `resizable` are observed/reactive after the element connects; the rest — including `zoom-on-hover`/`zoom-amount` — are init-time config, read once on connect.
 
 ## Slots
 
@@ -103,6 +106,8 @@ document.querySelector('fractal-view').resize(60);
 ### `sizechange`
 
 Fired on the `<fractal-view>` element whenever the first panel's size changes — whether from `resize()`, dragging the divider, or an attribute change. `detail.size` is the new percentage. The event bubbles and is composed, so it can be listened for from outside the element's shadow DOM.
+
+Hovering a panel (see `zoom-on-hover` above) does *not* fire `sizechange` — the zoom is a purely visual, temporary offset layered on top of the real size, not a change to it.
 
 ```js
 panel.addEventListener('sizechange', (e) => {
@@ -135,7 +140,7 @@ npm run dev      # serve the demo/ page with Vite
 npm run preview  # preview the production build
 ```
 
-`demo/index.html` imports the built `fractal` package via an [import map](https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/script/type/importmap) pointing at `../dist/fractal.js` — run `npm run build` at least once (and after any `src/` changes) before `npm run dev`, or the demo will be serving a stale bundle.
+`demo/index.html` imports `fractal` via an [import map](https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/script/type/importmap). Under `npm run dev`, Vite's own resolver takes priority over that import map and resolves the bare `fractal` specifier to `dist/fractal.js` via the package's own self-reference (`package.json`'s `exports`/`module` field) — so run `npm run build` after any `src/` change, or the demo will keep serving a stale bundle.
 
 See `demo/index.html` for a full example with vertical, horizontal, and nested panels, plus slider/button controls demonstrating two-way binding.
 
