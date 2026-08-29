@@ -4,14 +4,21 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Fractal Demo</title>
+  <script type="importmap">
+  {
+    "imports": {
+      "fractal": "../dist/fractal.js"
+    }
+  }
+  </script>
   <style>
     *, *::before, *::after { box-sizing: border-box; }
 
     body {
       margin: 0;
       font-family: system-ui, sans-serif;
-      background: #0f172a;
-      color: #e2e8f0;
+      background: #fafafa;
+      color: #383a42;
       height: 100dvh;
       display: flex;
       flex-direction: column;
@@ -24,9 +31,9 @@
       font-size: 1rem;
       font-weight: 600;
       letter-spacing: 0.05em;
-      background: #1e293b;
-      border-bottom: 1px solid #334155;
-      color: #7dd3fc;
+      background: #f0f0f1;
+      border-bottom: 1px solid #e5e5e6;
+      color: #a626a4;
       flex-shrink: 0;
     }
 
@@ -50,15 +57,15 @@
       font-weight: 600;
       letter-spacing: 0.08em;
       text-transform: uppercase;
-      color: #94a3b8;
+      color: #a0a1a7;
       padding: 6px 12px;
-      background: #1e293b;
-      border-bottom: 1px solid #334155;
+      background: #f0f0f1;
+      border-bottom: 1px solid #e5e5e6;
       flex-shrink: 0;
     }
 
     .demo-cell + .demo-cell {
-      border-left: 1px solid #334155;
+      border-left: 1px solid #e5e5e6;
     }
 
     fractal-view {
@@ -79,20 +86,21 @@
       letter-spacing: 0.03em;
     }
 
-    .pane-a { background: #1e3a5f; color: #7dd3fc; }
-    .pane-b { background: #1a2e1a; color: #86efac; }
-    .pane-c { background: #3b1f2b; color: #f9a8d4; }
-    .pane-d { background: #2d1f3b; color: #c4b5fd; }
-    .pane-e { background: #3b2f1f; color: #fcd34d; }
-    .pane-f { background: #1f3b3b; color: #67e8f9; }
+    /* Atom One Light syntax palette: keyword / string / function / number / comment / tag */
+    .pane-a { background: #d8c7d3; color: #a626a4; }
+    .pane-b { background: #c7d6bd; color: #50a14f; }
+    .pane-c { background: #c3d0d9; color: #4078f2; }
+    .pane-d { background: #e3d2ac; color: #986801; }
+    .pane-e { background: #d7d5cf; color: #8b8c92; font-style: italic; }
+    .pane-f { background: #ddc3bf; color: #e45649; }
 
     /* ── Controls ──────────────────────────────────────────── */
     .controls {
       display: flex;
       gap: 8px;
       padding: 8px 12px;
-      background: #1e293b;
-      border-top: 1px solid #334155;
+      background: #f0f0f1;
+      border-top: 1px solid #e5e5e6;
       align-items: center;
       flex-shrink: 0;
       flex-wrap: wrap;
@@ -100,7 +108,7 @@
 
     .controls label {
       font-size: 0.75rem;
-      color: #94a3b8;
+      color: #696c77;
       display: flex;
       align-items: center;
       gap: 6px;
@@ -108,22 +116,22 @@
 
     .controls button {
       padding: 4px 10px;
-      background: #334155;
-      border: 1px solid #475569;
+      background: #e5e5e6;
+      border: 1px solid #d3d3d4;
       border-radius: 6px;
-      color: #e2e8f0;
+      color: #383a42;
       font-size: 0.75rem;
       cursor: pointer;
       transition: background 0.12s;
     }
 
     .controls button:hover {
-      background: #475569;
+      background: #dcdce0;
     }
 
     .controls input[type=range] {
       width: 100px;
-      accent-color: #7dd3fc;
+      accent-color: #4078f2;
     }
   </style>
 </head>
@@ -136,14 +144,14 @@
   <!-- Vertical split (left | right) -->
   <div class="demo-cell">
     <div class="demo-label">Vertical split (left | right)</div>
-    <fractal-view id="v-panel" split="v" initial-size="35" min-size="10" max-size="80" divider-width="8">
+    <fractal-view id="v-panel" split="v" initial-size="35" min-size="0" max-size="100" divider-width="8">
       <div slot="first"  class="pane pane-a">First panel</div>
       <div slot="second" class="pane pane-b">Second panel</div>
     </fractal-view>
     <div class="controls">
       <label>
         Resize:
-        <input type="range" min="10" max="80" value="35" id="v-slider" />
+        <input type="range" min="0" max="100" value="35" id="v-slider" />
       </label>
       <button id="v-toggle-resizable">Disable resize</button>
       <button id="v-toggle-split">Switch to horizontal</button>
@@ -153,14 +161,14 @@
   <!-- Horizontal split (top | bottom) -->
   <div class="demo-cell">
     <div class="demo-label">Horizontal split (top | bottom)</div>
-    <fractal-view id="h-panel" split="h" initial-size="40" min-size="10" max-size="85" divider-width="6">
+    <fractal-view id="h-panel" split="h" initial-size="40" min-size="0" max-size="100" divider-width="6">
       <div slot="first"  class="pane pane-c">First panel</div>
       <div slot="second" class="pane pane-d">Second panel</div>
     </fractal-view>
     <div class="controls">
       <label>
         Resize:
-        <input type="range" min="10" max="85" value="40" id="h-slider" />
+        <input type="range" min="0" max="100" value="40" id="h-slider" />
       </label>
     </div>
   </div>
@@ -168,22 +176,22 @@
   <!-- Nested: vertical outer, horizontal inner first panel -->
   <div class="demo-cell">
     <div class="demo-label">Nested panels</div>
-    <fractal-view split="v" initial-size="40" min-size="15" max-size="75" divider-width="6">
-      <fractal-view slot="first" split="h" initial-size="50" min-size="15" max-size="85" divider-width="6">
+    <fractal-view split="v" initial-size="40" min-size="0" max-size="100" divider-width="6">
+      <fractal-view slot="first" split="h" initial-size="50" min-size="0" max-size="100" divider-width="6">
         <div slot="first"  class="pane pane-e">Top</div>
         <div slot="second" class="pane pane-f">Bottom</div>
       </fractal-view>
       <div slot="second" class="pane pane-a">Right panel</div>
     </fractal-view>
     <div class="controls">
-      <span style="font-size:0.75rem;color:#94a3b8;">Drag any divider to resize</span>
+      <span style="font-size:0.75rem;color:#696c77;">Drag any divider to resize</span>
     </div>
   </div>
 
 </div>
 
 <script type="module">
-  import '../src/index.js';
+  import 'fractal';
 
   // ── Vertical panel controls ───────────────────────────────────────────────
   const vPanel = document.getElementById('v-panel');
@@ -193,6 +201,12 @@
 
   vSlider.addEventListener('input', () => {
     vPanel.resize(parseFloat(vSlider.value));
+  });
+
+  // Keep the slider in sync when the size changes from the other direction
+  // (e.g. dragging the divider, or resize() called elsewhere).
+  vPanel.addEventListener('sizechange', (e) => {
+    vSlider.value = e.detail.size;
   });
 
   let vResizable = true;
@@ -215,6 +229,10 @@
 
   hSlider.addEventListener('input', () => {
     hPanel.resize(parseFloat(hSlider.value));
+  });
+
+  hPanel.addEventListener('sizechange', (e) => {
+    hSlider.value = e.detail.size;
   });
 </script>
 

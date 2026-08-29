@@ -13,14 +13,6 @@ export default defineConfig({
       formats: ['es', 'umd'],
       fileName: (format) => `fractal.${format === 'es' ? 'js' : 'umd.cjs'}`,
     },
-    rollupOptions: {
-      external: ['flow-state'],
-      output: {
-        globals: {
-          'flow-state': 'FlowState',
-        },
-      },
-    },
   },
 });
 

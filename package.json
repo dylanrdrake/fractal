@@ -30,12 +30,6 @@
     "build": "vite build",
     "preview": "vite preview"
   },
-  "peerDependencies": {
-    "flow-state": "*"
-  },
-  "peerDependenciesMeta": {
-    "flow-state": { "optional": true }
-  },
   "devDependencies": {
     "flow-state": "github:dylanrdrake/flow-state",
     "vite": "^5.0.0"

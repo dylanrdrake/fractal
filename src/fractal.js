@@ -1,4 +1,4 @@
-import { FlowStateComponent, flowCompute } from 'flow-state';
+import { FlowStateComponent, flowCompute, flowWatch } from 'flow-state';
 
 /**
  * <fractal-view> — a resizable two-panel split layout web component.
@@ -17,6 +17,10 @@ import { FlowStateComponent, flowCompute } from 'flow-state';
  *
  * Methods:
  *   resize(size)     Programmatically set the first-panel size (%)
+ *
+ * Events:
+ *   sizechange       Fired (detail: { size }) whenever the first-panel size
+ *                    changes, whether from resize(), a drag, or externally.
  */
 export class Fractal extends FlowStateComponent {
   shadowMode = 'open';
@@ -125,13 +129,17 @@ export class Fractal extends FlowStateComponent {
           ['split']
         ),
 
-        // First panel: fixed size via flex-basis
+        // First panel: fixed size via flex-basis, sized against the space
+        // left over after the divider's fixed thickness so it can never push
+        // the divider past the container's edge (e.g. at size=100).
         firststyle: flowCompute(
-          (size, split) =>
-            split === 'v'
-              ? `flex: 0 0 ${size}%; width: ${size}%;`
-              : `flex: 0 0 ${size}%; height: ${size}%;`,
-          ['size', 'split']
+          (size, split, dividerwidth) => {
+            const basis = `calc((100% - ${dividerwidth}px) * ${size} / 100)`;
+            return split === 'v'
+              ? `flex: 0 0 ${basis}; width: ${basis};`
+              : `flex: 0 0 ${basis}; height: ${basis};`;
+          },
+          ['size', 'split', 'dividerwidth']
         ),
 
         // Divider: fixed thickness + cursor based on split and resizability
@@ -154,6 +162,17 @@ export class Fractal extends FlowStateComponent {
 
     // FlowStateComponent reads this.source, initialises FlowState, stamps template.
     super.connectedCallback();
+
+    // Emit `sizechange` whenever the internal size state changes (resize(),
+    // drag, or an external update) — skip flowWatch's immediate initial call.
+    let firstSizeEmit = true;
+    flowWatch(this, 'size', (size) => {
+      if (firstSizeEmit) {
+        firstSizeEmit = false;
+        return;
+      }
+      this.dispatchEvent(new CustomEvent('sizechange', { detail: { size }, bubbles: true, composed: true }));
+    });
 
     // Wire up drag-resize on the now-stamped divider.
     this.shadowRoot
