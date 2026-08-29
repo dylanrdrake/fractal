@@ -1,0 +1,43 @@
+{
+  "name": "fractal",
+  "version": "0.1.0",
+  "description": "A custom web component for resizable split-panel layouts powered by flow-state.",
+  "type": "module",
+  "main": "./dist/fractal.umd.cjs",
+  "module": "./dist/fractal.js",
+  "exports": {
+    ".": {
+      "import": "./dist/fractal.js",
+      "require": "./dist/fractal.umd.cjs"
+    }
+  },
+  "files": [
+    "dist/",
+    "src/",
+    "README.md"
+  ],
+  "keywords": [
+    "web-component",
+    "resizable",
+    "layout",
+    "flow-state",
+    "custom-element"
+  ],
+  "author": "Dylan Drake",
+  "license": "MIT",
+  "scripts": {
+    "dev": "vite demo",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "peerDependencies": {
+    "flow-state": "*"
+  },
+  "peerDependenciesMeta": {
+    "flow-state": { "optional": true }
+  },
+  "devDependencies": {
+    "flow-state": "github:dylanrdrake/flow-state",
+    "vite": "^5.0.0"
+  }
+}

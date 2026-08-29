@@ -1,0 +1,242 @@
+import { FlowStateComponent, flowCompute } from 'flow-state';
+
+/**
+ * <fractal-view> — a resizable two-panel split layout web component.
+ *
+ * Attributes:
+ *   split            "v" (left|right, default) | "h" (top|bottom)
+ *   initial-size     Percentage of space given to the first panel (default 50)
+ *   min-size         Minimum first-panel size in % (default 10)
+ *   max-size         Maximum first-panel size in % (default 90)
+ *   resizable        Set to "false" to disable drag-to-resize (default enabled)
+ *   divider-width    Divider thickness in px (default 8)
+ *
+ * Slots:
+ *   first            Content for the first (left / top) panel
+ *   second           Content for the second (right / bottom) panel
+ *
+ * Methods:
+ *   resize(size)     Programmatically set the first-panel size (%)
+ */
+export class Fractal extends FlowStateComponent {
+  shadowMode = 'open';
+
+  // ── Drag state ────────────────────────────────────────────────────────────
+  #dragging = false;
+
+  // Bound handler references kept for clean removal.
+  #onMouseMoveBound = (e) => this.#onMouseMove(e);
+  #onMouseUpBound = () => this.#onMouseUp();
+
+  // ── Styles ────────────────────────────────────────────────────────────────
+  get styles() {
+    return /* css */ `
+      :host {
+        display: block;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        box-sizing: border-box;
+      }
+
+      .container {
+        display: flex;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        box-sizing: border-box;
+      }
+
+      .panel {
+        overflow: hidden;
+        min-width: 0;
+        min-height: 0;
+        box-sizing: border-box;
+      }
+
+      .second-panel {
+        flex: 1 1 0;
+      }
+
+      .divider {
+        flex-shrink: 0;
+        background: #e5e7eb;
+        transition: background 0.12s;
+        user-select: none;
+        -webkit-user-select: none;
+        box-sizing: border-box;
+      }
+
+      .divider:hover {
+        background: #9ca3af;
+      }
+
+      .divider:active {
+        background: #6b7280;
+      }
+    `;
+  }
+
+  // ── Template ──────────────────────────────────────────────────────────────
+  get template() {
+    return /* html */ `
+      <div class="container" flow-watch-containerstyle-to-attr="style">
+        <div class="panel first-panel" flow-watch-firststyle-to-attr="style">
+          <slot name="first"></slot>
+        </div>
+        <div class="divider" flow-watch-dividerstyle-to-attr="style"></div>
+        <div class="panel second-panel">
+          <slot name="second"></slot>
+        </div>
+      </div>
+    `;
+  }
+
+  // ── Lifecycle ─────────────────────────────────────────────────────────────
+  connectedCallback() {
+    const size = parseFloat(this.getAttribute('initial-size') ?? '50');
+    const split = this.getAttribute('split') ?? 'v';
+    const resizable = this.getAttribute('resizable') !== 'false';
+    const dividerwidth = parseInt(this.getAttribute('divider-width') ?? '8', 10);
+    const minsize = parseFloat(this.getAttribute('min-size') ?? '10');
+    const maxsize = parseFloat(this.getAttribute('max-size') ?? '90');
+
+    // Set the source own-property before super reads it.
+    // Object.defineProperty is required because FlowStateComponent defines a
+    // prototype getter `get source()` — a plain assignment would throw in strict
+    // mode (ES modules).  Using defineProperty creates a shadowing own data
+    // property that FlowStateComponent then reads and deletes, restoring the
+    // prototype getter afterward.
+    Object.defineProperty(this, 'source', {
+      value: {
+        size: Math.max(minsize, Math.min(maxsize, size)),
+        split,
+        resizable,
+        dividerwidth,
+        minsize,
+        maxsize,
+
+        // flex-direction on the container
+        containerstyle: flowCompute(
+          (split) =>
+            split === 'v'
+              ? 'flex-direction: row;'
+              : 'flex-direction: column;',
+          ['split']
+        ),
+
+        // First panel: fixed size via flex-basis
+        firststyle: flowCompute(
+          (size, split) =>
+            split === 'v'
+              ? `flex: 0 0 ${size}%; width: ${size}%;`
+              : `flex: 0 0 ${size}%; height: ${size}%;`,
+          ['size', 'split']
+        ),
+
+        // Divider: fixed thickness + cursor based on split and resizability
+        dividerstyle: flowCompute(
+          (split, resizable, dividerwidth) => {
+            const cursor = resizable
+              ? split === 'v' ? 'ew-resize' : 'ns-resize'
+              : 'default';
+            return split === 'v'
+              ? `width: ${dividerwidth}px; height: 100%; cursor: ${cursor};`
+              : `height: ${dividerwidth}px; width: 100%; cursor: ${cursor};`;
+          },
+          ['split', 'resizable', 'dividerwidth']
+        ),
+      },
+      configurable: true,
+      writable: true,
+      enumerable: true,
+    });
+
+    // FlowStateComponent reads this.source, initialises FlowState, stamps template.
+    super.connectedCallback();
+
+    // Wire up drag-resize on the now-stamped divider.
+    this.shadowRoot
+      ?.querySelector('.divider')
+      ?.addEventListener('mousedown', (e) => this.#onDividerMouseDown(e));
+  }
+
+  disconnectedCallback() {
+    super.disconnectedCallback();
+    // Guard: remove any window listeners left over from an interrupted drag.
+    window.removeEventListener('mousemove', this.#onMouseMoveBound);
+    window.removeEventListener('mouseup', this.#onMouseUpBound);
+  }
+
+  // ── Public API ────────────────────────────────────────────────────────────
+  /**
+   * Programmatically set the first-panel size (clamped to min/max).
+   * @param {number} size – percentage (0–100)
+   */
+  resize(size) {
+    if (!this.source?.update) return;
+    const minsize = parseFloat(this.getAttribute('min-size') ?? '10');
+    const maxsize = parseFloat(this.getAttribute('max-size') ?? '90');
+    this.source.update({ size: Math.max(minsize, Math.min(maxsize, size)) });
+  }
+
+  // ── Observed attributes ───────────────────────────────────────────────────
+  static get observedAttributes() {
+    return ['split', 'resizable'];
+  }
+
+  attributeChangedCallback(name, _oldVal, newVal) {
+    if (!this.source?.update) return;
+    if (name === 'split') {
+      this.source.update({ split: newVal ?? 'v' });
+    } else if (name === 'resizable') {
+      this.source.update({ resizable: newVal !== 'false' });
+    }
+  }
+
+  // ── Drag handlers ─────────────────────────────────────────────────────────
+  #onDividerMouseDown(e) {
+    if (!this.source?.update) return;
+    // Check live attribute so it stays in sync if changed externally.
+    if (this.getAttribute('resizable') === 'false') return;
+
+    e.preventDefault();
+    this.#dragging = true;
+    window.addEventListener('mousemove', this.#onMouseMoveBound);
+    window.addEventListener('mouseup', this.#onMouseUpBound);
+  }
+
+  #onMouseMove(e) {
+    if (!this.#dragging) return;
+
+    const split = this.getAttribute('split') ?? 'v';
+    const container = this.shadowRoot?.querySelector('.container');
+    if (!container) return;
+
+    const rect = container.getBoundingClientRect();
+    let newSize;
+
+    if (split === 'v') {
+      newSize = rect.width > 0
+        ? ((e.clientX - rect.left) / rect.width) * 100
+        : 50;
+    } else {
+      newSize = rect.height > 0
+        ? ((e.clientY - rect.top) / rect.height) * 100
+        : 50;
+    }
+
+    const minsize = parseFloat(this.getAttribute('min-size') ?? '10');
+    const maxsize = parseFloat(this.getAttribute('max-size') ?? '90');
+    this.source.update({ size: Math.max(minsize, Math.min(maxsize, newSize)) });
+  }
+
+  #onMouseUp() {
+    if (!this.#dragging) return;
+    this.#dragging = false;
+    window.removeEventListener('mousemove', this.#onMouseMoveBound);
+    window.removeEventListener('mouseup', this.#onMouseUpBound);
+  }
+}
+
+customElements.define('fractal-view', Fractal);
