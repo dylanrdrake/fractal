@@ -96,6 +96,52 @@
 
     /* Atom One Light syntax palette: keyword / string / function / number / comment / tag */
     .pane-a { background: #d8c7d3; color: #a626a4; }
+    /* Sidebar */
+    #v-panel {
+      #side-bar {
+        border-radius: 0 10px 10px 0;
+        border: 1px solid #ccc;
+      }
+      #side-bar[grown] {
+        box-shadow: 0 0 10px 10px rgba(0, 0, 0, 0.1);
+      }
+      #side-bar:not([grown]) {
+        width: 15px;
+        overflow: hidden;
+        height: 5vh;
+        cursor: pointer;
+      }
+      #side-bar:not([grown])::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: gainsboro;
+        border-radius: 0 10px 10px 0;
+      }
+      #main-content[sidebar-grown] {
+        box-shadow: inset 5px 0 20px 0px rgba(0, 0, 0, 0.1);
+      }
+      .sidebar-close {
+        position: absolute;
+        top: 6px;
+        right: 8px;
+        width: 18px;
+        height: 18px;
+        padding: 0;
+        border: none;
+        background: none;
+        color: inherit;
+        opacity: 0.5;
+        cursor: pointer;
+        line-height: 0;
+      }
+      .sidebar-close:hover {
+        opacity: 1;
+      }
+      #side-bar:not([grown]) .sidebar-close {
+        display: none;
+      }
+    }
     .pane-b { background: #c7d6bd; color: #50a14f; }
     .pane-c { background: #c3d0d9; color: #4078f2; }
     .pane-d { background: #e3d2ac; color: #986801; }
@@ -141,6 +187,7 @@
       width: 100px;
       accent-color: #4078f2;
     }
+
   </style>
 </head>
 <body>
@@ -149,14 +196,22 @@
 
 <!-- The demo's own top-level layout is 2 nested vertical fractal-views,
      making 3 resizable panels out of the 3 showcase cells below. -->
-<fractal-view split="v" initial-size="33.34" min-size="15" max-size="85">
+<fractal-view split="v" initial-size="33.34" min-size="15" max-size="85" divider>
 
   <!-- Panel 1: Vertical split (left | right) -->
-  <div slot="first" class="demo-cell">
+  <div slot="first" class="demo-cell" grow-on-hover="20">
     <div class="demo-label">Vertical split (left | right) · hover to grow</div>
-    <fractal-view id="v-panel" split="v" initial-size="20" min-size="0" max-size="50" divider-width="20">
-      <div slot="first"  class="pane pane-a" grow-on-hover="100">First panel</div>
-      <div slot="second" class="pane pane-b">Second panel</div>
+    <fractal-view id="v-panel" split="v" initial-size="5" min-size="0" max-size="60">
+      <div slot="first"  class="pane" grow-on-click="30" id="side-bar">
+        Sidebar
+        <button type="button" class="sidebar-close" id="sidebar-close" aria-label="Close sidebar">
+          <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.25" stroke-linecap="round">
+            <line x1="3" y1="3" x2="13" y2="13" />
+            <line x1="13" y1="3" x2="3" y2="13" />
+          </svg>
+        </button>
+      </div>
+      <div slot="second" class="pane" id="main-content">Second panel</div>
     </fractal-view>
     <div class="controls">
       <label>
@@ -232,6 +287,22 @@
   const vSlider = document.getElementById('v-slider');
   const vToggleResizable = document.getElementById('v-toggle-resizable');
   const vToggleSplit = document.getElementById('v-toggle-split');
+
+  // Sidebar //
+  const sidebar = document.getElementById('side-bar');
+  const mainContent = document.getElementById('main-content');
+  sidebar.addEventListener('panelgrow', (evt) => {
+    if (evt.detail.grown) mainContent.setAttribute('sidebar-grown', '');
+    else                  mainContent.removeAttribute('sidebar-grown');
+  });
+
+  // grow-on-click has no click-driven way to collapse itself (see
+  // src/fractal.js), so the sidebar's own close button calls collapseGrow()
+  // on its containing fractal-view directly.
+  document.getElementById('sidebar-close').addEventListener('click', (e) => {
+    e.stopPropagation(); // don't let it bubble into #side-bar's own click-to-grow
+    document.getElementById('v-panel').collapseGrow();
+  });
 
   vSlider.addEventListener('input', () => {
     vPanel.resize(parseFloat(vSlider.value));
