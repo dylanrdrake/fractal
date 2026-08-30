@@ -1,9 +1,9 @@
 # Fractal
 
-A custom web component for resizable two-panel layouts — `<fractal-view>` renders two panels separated by a draggable divider, powered internally by [flow-state](https://github.com/dylanrdrake/flow-state) for reactive, attribute-driven styling. `flow-state` is bundled into the build, so there's nothing else to install.
+A custom web component for two-panel layouts — `<fractal-view>` renders two panels, optionally separated by a draggable divider, powered internally by [flow-state](https://github.com/dylanrdrake/flow-state) for reactive, attribute-driven styling. `flow-state` is bundled into the build, so there's nothing else to install.
 
 - 🪟 Two-panel layout, vertical (left | right) or horizontal (top | bottom)
-- 🖱️ Drag-to-resize divider, with min/max clamping
+- 🖱️ Opt-in drag-to-resize divider (`divider` attribute), with min/max clamping — without it, panels are locked at their split with no reserved gap
 - 🔍 Hover-to-grow — opt any panel in with `grow-on-hover`; it grows on mouseover and settles back on mouse-out
 - 🪆 Nestable — a `<fractal-view>` can live inside another's slot for arbitrary layouts
 - 🎛️ Fully controllable via attributes or the `resize()` method, and observable via a standard `sizechange` event
@@ -47,21 +47,21 @@ npm install fractal
   import 'fractal';
 </script>
 
-<fractal-view split="v" initial-size="35" min-size="10" max-size="90">
+<fractal-view divider split="v" initial-size="35" min-size="10" max-size="90">
   <div slot="first">Sidebar</div>
   <div slot="second">Main content</div>
 </fractal-view>
 ```
 
-`<fractal-view>` fills its container, so give it explicit dimensions (e.g. `height: 100vh` or place it inside a flex/grid parent).
+`<fractal-view>` fills its container, so give it explicit dimensions (e.g. `height: 100vh` or place it inside a flex/grid parent). Leave off `divider` for a locked, static split with no gap between the panels — see `divider` under Attributes below.
 
 ### Nesting
 
 Panels can be nested by placing a `<fractal-view>` inside a slot of another:
 
 ```html
-<fractal-view split="v" initial-size="40">
-  <fractal-view slot="first" split="h" initial-size="50">
+<fractal-view divider split="v" initial-size="40">
+  <fractal-view divider slot="first" split="h" initial-size="50">
     <div slot="first">Top-left</div>
     <div slot="second">Bottom-left</div>
   </fractal-view>
@@ -74,14 +74,14 @@ Panels can be nested by placing a `<fractal-view>` inside a slot of another:
 | Attribute        | Values / type      | Default | Description                                             |
 | ---------------- | ------------------ | ------- | --------------------------------------------------------- |
 | `split`           | `"v"` \| `"h"`      | `"v"`   | `v` = left/right, `h` = top/bottom. Reactive.              |
+| `divider`         | bare attribute       | no divider | Add it to render a divider between the panels. Without it, panels are locked at their split (still set via `initial-size`/`resize()`) with no reserved gap — the divider's space goes to the panels. Reactive. |
 | `initial-size`    | number (%)          | `50`    | Starting size of the first panel. Read once on connect.    |
 | `min-size`        | number (%)          | `10`    | Minimum size the first panel can be dragged to.             |
 | `max-size`        | number (%)          | `90`    | Maximum size the first panel can be dragged to.             |
-| `resizable`       | `"false"` to disable | enabled | Set to `"false"` to lock the divider. Reactive.            |
-| `divider-width`   | number (px)          | `8`     | Thickness of the divider. Read once on connect.             |
-| `grow-amount`     | number (percentage points) | `15` | How much a panel grows on hover (see `grow-on-hover` below). Read once on connect. |
+| `resizable`       | `"false"` to disable | enabled | Set to `"false"` to disable dragging a rendered divider (irrelevant without `divider`). Reactive. |
+| `divider-width`   | number (px)          | `8`     | Thickness of the divider when rendered. Read once on connect. |
 
-Only `split` and `resizable` are observed/reactive after the element connects; the rest — including `grow-amount` — are init-time config, read once on connect.
+`split`, `divider`, and `resizable` are observed/reactive after the element connects; the rest are init-time config, read once on connect.
 
 ## Slots
 
@@ -92,16 +92,14 @@ Only `split` and `resizable` are observed/reactive after the element connects; t
 
 ### `grow-on-hover`
 
-The hover-to-grow effect isn't a `<fractal-view>` attribute — it's opted into per panel by adding a bare `grow-on-hover` attribute to the *element assigned to that slot*. Presence enables it (any value, or none); it's checked live, so each panel's hover response is independent of its sibling and of `<fractal-view>`'s own attributes.
+The hover-to-grow effect isn't a `<fractal-view>` attribute — it's opted into per panel by adding a `grow-on-hover` attribute to the *element assigned to that slot*. A bare attribute grows by 15 percentage points; a numeric value sets a custom amount for that panel. It's checked live, so each panel's hover response — enabled or not, and by how much — is independent of its sibling and of `<fractal-view>`'s own attributes.
 
 ```html
 <fractal-view split="v">
-  <div slot="first" grow-on-hover>Grows when hovered</div>
-  <div slot="second">Never grows</div>
+  <div slot="first" grow-on-hover>Grows by 15 (the default)</div>
+  <div slot="second" grow-on-hover="30">Grows by 30</div>
 </fractal-view>
 ```
-
-`grow-amount` (see Attributes above) still controls how much any opted-in panel grows by.
 
 ## Methods
 

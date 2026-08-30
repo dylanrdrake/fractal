@@ -67,6 +67,7 @@
 
     /* ── Panel content ─────────────────────────────────────── */
     .pane {
+      position: relative;
       width: 100%;
       height: 100%;
       display: flex;
@@ -75,7 +76,23 @@
       font-size: 0.875rem;
       font-weight: 600;
       letter-spacing: 0.03em;
+
+      /* --fractal-depth is set by fractal-view on itself and inherits down
+         through its shadow tree into slotted content like this pane — used
+         here to make deeper nesting visibly "heavier". */
+      /*box-shadow: inset 10px 10px 10px calc(2px + var(--fractal-depth, 0) * 2px) rgba(0, 0, 0, calc(0.08 + var(--fractal-depth, 0) * 0.02));*/
     }
+    /* goes with above --fractal-depth demo */
+    /*.pane::after {
+      content: "depth " attr(data-depth);
+      position: absolute;
+      bottom: 6px;
+      right: 8px;
+      font-size: 0.65rem;
+      font-weight: 600;
+      letter-spacing: 0.03em;
+      opacity: 0.55;
+    }*/
 
     /* Atom One Light syntax palette: keyword / string / function / number / comment / tag */
     .pane-a { background: #d8c7d3; color: #a626a4; }
@@ -137,8 +154,8 @@
   <!-- Panel 1: Vertical split (left | right) -->
   <div slot="first" class="demo-cell">
     <div class="demo-label">Vertical split (left | right) · hover to grow</div>
-    <fractal-view id="v-panel" split="v" initial-size="35" min-size="0" max-size="100" divider-width="8">
-      <div slot="first"  class="pane pane-a" grow-on-hover>First panel</div>
+    <fractal-view id="v-panel" split="v" initial-size="20" min-size="0" max-size="50" divider-width="20">
+      <div slot="first"  class="pane pane-a" grow-on-hover="100">First panel</div>
       <div slot="second" class="pane pane-b">Second panel</div>
     </fractal-view>
     <div class="controls">
@@ -148,6 +165,7 @@
       </label>
       <button id="v-toggle-resizable">Disable resize</button>
       <button id="v-toggle-split">Switch to horizontal</button>
+      <button id="v-toggle-divider">Show divider</button>
     </div>
   </div>
 
@@ -165,18 +183,20 @@
           Resize:
           <input type="range" min="0" max="100" value="40" id="h-slider" />
         </label>
+        <button id="h-toggle-divider">Show divider</button>
       </div>
     </div>
 
-    <!-- Panel 3: Nested: vertical outer, horizontal inner first panel -->
+    <!-- Panel 3: Nested: vertical outer, horizontal inner first panel.
+         The innermost split (Top/Bottom below) always has no divider — locked. -->
     <div slot="second" class="demo-cell">
       <div class="demo-label">Nested panels</div>
-      <fractal-view split="v" initial-size="40" min-size="0" max-size="100" divider-width="6">
+      <fractal-view id="nested-panel" split="v" initial-size="40" min-size="0" max-size="100" divider-width="6">
         <fractal-view slot="first" split="h" initial-size="50" min-size="0" max-size="100" divider-width="6">
           <div slot="first"  class="pane pane-e">Top</div>
           <div slot="second" class="pane pane-f">Bottom</div>
         </fractal-view>
-        <div slot="second" class="pane pane-a">
+        <div slot="second" class="pane pane-a" grow-on-hover>
           <fractal-view split="h" initial-size="50" min-size="0" max-size="100" divider-width="6">
             <div slot="first"  class="pane pane-b">Top</div>
             <div slot="second" class="pane pane-c" grow-on-hover>Bottom</div>
@@ -184,7 +204,8 @@
         </div>
       </fractal-view>
       <div class="controls">
-        <span style="font-size:0.75rem;color:#696c77;">Drag any divider to resize</span>
+        <span style="font-size:0.75rem;color:#696c77;">Drag the outer or top-left dividers to resize</span>
+        <button id="nested-toggle-divider">Show divider</button>
       </div>
     </div>
 
@@ -194,6 +215,17 @@
 
 <script type="module">
   import 'fractal';
+
+  // ── Illustrate nesting depth ─────────────────────────────────────────────
+  // Each <fractal-view> sets --fractal-depth on itself (see src/fractal.js).
+  // Stamp it onto each pane as a plain data attribute so the CSS above can
+  // show it via `content: attr(data-depth)` — attr() can't read a custom
+  // property directly, so this is the bridge from custom property to badge.
+  document.querySelectorAll('.pane').forEach((pane) => {
+    const host = pane.closest('fractal-view');
+    const depth = host?.style.getPropertyValue('--fractal-depth') ?? '0';
+    pane.dataset.depth = depth.trim();
+  });
 
   // ── Vertical panel controls ───────────────────────────────────────────────
   const vPanel = document.getElementById('v-panel');
@@ -236,6 +268,22 @@
   hPanel.addEventListener('sizechange', (e) => {
     hSlider.value = e.detail.size;
   });
+
+  // ── Divider toggle buttons (one per main pane) ────────────────────────────
+  function wireDividerToggle(panel, button) {
+    const sync = () => {
+      button.textContent = panel.hasAttribute('divider') ? 'Hide divider' : 'Show divider';
+    };
+    button.addEventListener('click', () => {
+      panel.toggleAttribute('divider');
+      sync();
+    });
+    sync();
+  }
+
+  wireDividerToggle(vPanel, document.getElementById('v-toggle-divider'));
+  wireDividerToggle(hPanel, document.getElementById('h-toggle-divider'));
+  wireDividerToggle(document.getElementById('nested-panel'), document.getElementById('nested-toggle-divider'));
 </script>
 
 </body>
