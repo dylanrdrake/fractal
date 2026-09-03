@@ -1,6 +1,6 @@
 # Fractal
 
-A custom web component for two-panel layouts — `<fractal-view>` renders two panels, optionally separated by a draggable divider, powered internally by [flow-state](https://github.com/dylanrdrake/flow-state) for reactive, attribute-driven styling. `flow-state` is bundled into the build, so there's nothing else to install.
+A custom web component for two-panel layouts — `<fractal-view>` renders two panels, optionally separated by a draggable divider, powered internally by [flow-state](https://github.com/dylanrdrake/flow-state). `flow-state` is bundled into the build, so there's nothing else to install.
 
 - 🪟 Two-panel layout, vertical (left | right) or horizontal (top | bottom)
 - 🖱️ Opt-in drag-to-resize divider (`divider` attribute), with min/max clamping — without it, panels are locked at their split with no reserved gap
