@@ -28,7 +28,8 @@
   "scripts": {
     "dev": "vite demo",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "prepare": "vite build"
   },
   "devDependencies": {
     "flow-state": "github:dylanrdrake/flow-state",

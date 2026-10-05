@@ -170,85 +170,75 @@ export class Fractal extends FlowStateComponent {
     }
     this.style.setProperty('--fractal-depth', String(depth));
 
-    // Set the source own-property before super reads it.
-    // Object.defineProperty is required because FlowStateComponent defines a
-    // prototype getter `get source()` — a plain assignment would throw in strict
-    // mode (ES modules).  Using defineProperty creates a shadowing own data
-    // property that FlowStateComponent then reads and deletes, restoring the
-    // prototype getter afterward.
-    Object.defineProperty(this, 'source', {
-      value: {
-        size: Math.max(minsize, Math.min(maxsize, size)),
-        split,
-        divider,
-        resizable,
-        dividerwidth,
-        minsize,
-        maxsize,
-        // Ephemeral, hover-driven boost added on top of `size` — never
-        // persisted and never affects `size` itself, so it can't leak into
-        // `resize()`, drags, or the `sizechange` event.
-        hoverboost: 0,
-        // Same idea, but pinned on/off by a grow-on-click toggle instead of
-        // continuous hover. Stacks additively with hoverboost.
-        clickboost: 0,
+    // Declare the config before super reads it; `source` then holds the instance.
+    this.sourceConfig = {
+      size: Math.max(minsize, Math.min(maxsize, size)),
+      split,
+      divider,
+      resizable,
+      dividerwidth,
+      minsize,
+      maxsize,
+      // Ephemeral, hover-driven boost added on top of `size` — never
+      // persisted and never affects `size` itself, so it can't leak into
+      // `resize()`, drags, or the `sizechange` event.
+      hoverboost: 0,
+      // Same idea, but pinned on/off by a grow-on-click toggle instead of
+      // continuous hover. Stacks additively with hoverboost.
+      clickboost: 0,
 
-        // Combined grow offset driving both layout and the grown/panelgrow
-        // reporting below, so hover and click grow read as one state.
-        boost: flowCompute(
-          (hoverboost, clickboost) => hoverboost + clickboost,
-          ['hoverboost', 'clickboost']
-        ),
+      // Combined grow offset driving both layout and the grown/panelgrow
+      // reporting below, so hover and click grow read as one state.
+      boost: flowCompute(
+        (hoverboost, clickboost) => hoverboost + clickboost,
+        ['hoverboost', 'clickboost']
+      ),
 
-        // flex-direction on the container
-        containerstyle: flowCompute(
-          (split) =>
-            split === 'v'
-              ? 'flex-direction: row;'
-              : 'flex-direction: column;',
-          ['split']
-        ),
+      // flex-direction on the container
+      containerstyle: flowCompute(
+        (split) =>
+          split === 'v'
+            ? 'flex-direction: row;'
+            : 'flex-direction: column;',
+        ['split']
+      ),
 
-        // First panel: fixed size via flex-basis, sized against the space
-        // left over after the divider's fixed thickness (0 when no divider
-        // is rendered, so its space goes to the panels) so it can never push
-        // the divider past the container's edge (e.g. at size=100). Hover
-        // grow is layered on as a clamped offset to the true `size`.
-        firststyle: flowCompute(
-          (size, split, divider, dividerwidth, boost) => {
-            const effectiveSize = Math.max(minsize, Math.min(maxsize, size + boost));
-            const effectiveDividerWidth = divider ? dividerwidth : 0;
-            const basis = `calc((100% - ${effectiveDividerWidth}px) * ${effectiveSize} / 100)`;
-            return split === 'v'
-              ? `flex: 0 0 ${basis}; width: ${basis};`
-              : `flex: 0 0 ${basis}; height: ${basis};`;
-          },
-          ['size', 'split', 'divider', 'dividerwidth', 'boost']
-        ),
+      // First panel: fixed size via flex-basis, sized against the space
+      // left over after the divider's fixed thickness (0 when no divider
+      // is rendered, so its space goes to the panels) so it can never push
+      // the divider past the container's edge (e.g. at size=100). Hover
+      // grow is layered on as a clamped offset to the true `size`.
+      firststyle: flowCompute(
+        (size, split, divider, dividerwidth, boost) => {
+          const effectiveSize = Math.max(minsize, Math.min(maxsize, size + boost));
+          const effectiveDividerWidth = divider ? dividerwidth : 0;
+          const basis = `calc((100% - ${effectiveDividerWidth}px) * ${effectiveSize} / 100)`;
+          return split === 'v'
+            ? `flex: 0 0 ${basis}; width: ${basis};`
+            : `flex: 0 0 ${basis}; height: ${basis};`;
+        },
+        ['size', 'split', 'divider', 'dividerwidth', 'boost']
+      ),
 
-        // Divider: collapsed to zero size and non-interactive unless
-        // `divider` is set; otherwise fixed thickness + cursor based on
-        // split and resizability.
-        dividerstyle: flowCompute(
-          (split, divider, resizable, dividerwidth) => {
-            const width = divider ? dividerwidth : 0;
-            const pointerEvents = divider ? 'auto' : 'none';
-            const cursor = divider && resizable
-              ? split === 'v' ? 'ew-resize' : 'ns-resize'
-              : 'default';
-            return split === 'v'
-              ? `width: ${width}px; height: 100%; cursor: ${cursor}; pointer-events: ${pointerEvents};`
-              : `height: ${width}px; width: 100%; cursor: ${cursor}; pointer-events: ${pointerEvents};`;
-          },
-          ['split', 'divider', 'resizable', 'dividerwidth']
-        ),
-      },
-      configurable: true,
-      writable: true,
-      enumerable: true,
-    });
+      // Divider: collapsed to zero size and non-interactive unless
+      // `divider` is set; otherwise fixed thickness + cursor based on
+      // split and resizability.
+      dividerstyle: flowCompute(
+        (split, divider, resizable, dividerwidth) => {
+          const width = divider ? dividerwidth : 0;
+          const pointerEvents = divider ? 'auto' : 'none';
+          const cursor = divider && resizable
+            ? split === 'v' ? 'ew-resize' : 'ns-resize'
+            : 'default';
+          return split === 'v'
+            ? `width: ${width}px; height: 100%; cursor: ${cursor}; pointer-events: ${pointerEvents};`
+            : `height: ${width}px; width: 100%; cursor: ${cursor}; pointer-events: ${pointerEvents};`;
+        },
+        ['split', 'divider', 'resizable', 'dividerwidth']
+      ),
+    };
 
-    // FlowStateComponent reads this.source, initialises FlowState, stamps template.
+    // FlowStateComponent reads this.sourceConfig, initialises FlowState, stamps template.
     super.connectedCallback();
 
     // Emit `sizechange` whenever the internal size state changes (resize(),
