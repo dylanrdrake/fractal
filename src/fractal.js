@@ -138,11 +138,11 @@ export class Fractal extends FlowStateComponent {
   // ── Template ──────────────────────────────────────────────────────────────
   get template() {
     return /* html */ `
-      <div class="container" flow-watch-containerstyle-to-attr="style">
-        <div class="panel first-panel" flow-watch-firststyle-to-attr="style">
+      <div class="container" flow-attr="style: containerstyle">
+        <div class="panel first-panel" flow-attr="style: firststyle">
           <slot name="first"></slot>
         </div>
-        <div class="divider" flow-watch-dividerstyle-to-attr="style"></div>
+        <div class="divider" flow-attr="style: dividerstyle"></div>
         <div class="panel second-panel">
           <slot name="second"></slot>
         </div>
@@ -244,7 +244,7 @@ export class Fractal extends FlowStateComponent {
     // Emit `sizechange` whenever the internal size state changes (resize(),
     // drag, or an external update) — skip flowWatch's immediate initial call.
     let firstSizeEmit = true;
-    flowWatch(this, 'size', (size) => {
+    flowWatch(this, this.source.size, (size) => {
       if (firstSizeEmit) {
         firstSizeEmit = false;
         return;
@@ -260,7 +260,7 @@ export class Fractal extends FlowStateComponent {
     // grow of the new one.
     let prevBoost = 0;
     let firstBoostEmit = true;
-    flowWatch(this, 'boost', (boost) => {
+    flowWatch(this, this.source.boost, (boost) => {
       if (firstBoostEmit) {
         firstBoostEmit = false;
         prevBoost = boost;
