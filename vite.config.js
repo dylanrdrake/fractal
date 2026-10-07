@@ -5,6 +5,8 @@ import { fileURLToPath } from 'url';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
 export default defineConfig({
+  // Dev server only: extra hostname to accept, for serving the demo through a proxy.
+  server: { allowedHosts: process.env.DEV_HOST ? [process.env.DEV_HOST] : [] },
   build: {
     minify: 'esbuild',
     lib: {

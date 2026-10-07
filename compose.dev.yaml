@@ -1,0 +1,31 @@
+# Dev container: node in Docker instead of on the host.
+# Runs the Vite dev server (`vite demo`) over the working tree, mounted read-write so npm can write
+# node_modules and dist. An edit to demo/ reloads in the browser. The demo's `import 'fractal'`
+# resolves to the built dist/fractal.js, so after an edit to src/ run the build.
+# Serves on http://127.0.0.1:8896. To reach it through a proxy under another hostname, put
+# DEV_HOST=<that hostname> in an untracked .env beside this file (see vite.config.js).
+# Run npm in it (C = docker compose -f compose.dev.yaml):
+#   $C run --rm fractal npm ci          # first time, and after package-lock.json changes
+#   $C run --rm fractal npm run build
+#   $C up -d                            # then stop / start
+name: fractal-dev
+services:
+  fractal:
+    image: node:24
+    container_name: fractal-dev
+    restart: unless-stopped
+    init: true   # forwards SIGTERM, so it stops at once
+    user: "1000:1000"
+    read_only: true
+    tmpfs:
+      - /tmp:exec   # npm cache and logs (HOME below). exec: npm builds flow-state (a git dependency) in here
+    environment:
+      HOME: /tmp
+      DEV_HOST: ${DEV_HOST:-}
+    working_dir: /app
+    # --config: `vite demo` looks for a config in demo/, not here
+    command: npx vite demo --config vite.config.js --host 0.0.0.0 --port 8080 --strictPort
+    volumes:
+      - .:/app
+    ports:
+      - 127.0.0.1:8896:8080
